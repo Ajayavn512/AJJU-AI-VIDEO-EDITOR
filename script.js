@@ -84,7 +84,8 @@ async function exportMp4(){
 $('connectApiBtn').addEventListener('click',connectApi);
 $('mp4ExportBtn').addEventListener('click',exportMp4);
 try{const saved=localStorage.getItem('ajjuApiBase');if(saved)$('apiUrlInput').value=saved}catch(e){}
-\n$('exportBtn').addEventListener('click',exportVideo);
+
+$('exportBtn').addEventListener('click',exportVideo);
 $('helpBtn').onclick=()=>$('helpModal').classList.remove('hidden');$('closeHelp').onclick=()=>$('helpModal').classList.add('hidden');$('gotIt').onclick=()=>$('helpModal').classList.add('hidden');$('helpModal').addEventListener('click',e=>{if(e.target===$('helpModal'))$('helpModal').classList.add('hidden')});
 $('menuBtn').onclick=()=>$('sidebar').classList.toggle('open');document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>{$('sidebar').classList.remove('open');document.querySelectorAll('.nav-link').forEach(n=>n.classList.remove('active'));a.classList.add('active')}));
 setLoaded(false);
