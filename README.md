@@ -1,32 +1,50 @@
 # AJJU AI VIDEO EDITOR
 
-A responsive, browser-based video editing starter studio by AJJU Creative Studio.
+A responsive creator studio with a browser editor and an optional Node.js + FFmpeg processing API.
 
-## Current features
-- Drag-and-drop or file-picker video import
-- Browser video preview and playback
-- Start/end trimming
-- Visual looks: Original, Cinematic, Warm, Mono and Vivid
-- Custom title/caption overlay with position and size controls
-- Optional user-supplied background audio track
-- Aspect-ratio selection and local browser export
-- Responsive desktop and mobile layout
+## Frontend
 
-## Important current limitations
-This is the first browser-only MVP, not a full autonomous AI editor yet. It does **not** currently perform AI scene understanding, automatic removal of pauses/filler words, speech-to-text captions, generative effects, or MP4 encoding. The current export is WebM using the browser's MediaRecorder API; audio-track mixing depends on browser support. Your source video is processed locally in the browser and is not uploaded to a server.
+- Drag-and-drop video import and browser preview
+- Clip trimming, visual looks, title/caption overlay and aspect-ratio selection
+- Browser-side WebM export
+- Responsive layout for desktop and mobile
+- Optional FFmpeg API connection for H.264 MP4 export
 
-## Run locally
-Open `index.html` in a modern browser, preferably Chrome or Edge. For best compatibility, serve the folder with VS Code Live Server.
+## FFmpeg backend (new foundation)
 
-## GitHub Pages
-In the repository, open **Settings → Pages**, choose **Deploy from a branch**, select **main** and **/(root)**, then Save. The site will be available at:
+The `backend/` folder contains an Express API that uses FFmpeg to trim clips, apply basic color filters, crop common aspect ratios and return MP4 (H.264/AAC).
 
-https://ajayavn512.github.io/AJJU-AI-VIDEO-EDITOR/
+### Run locally
 
-## Next development milestones
-1. Add a proper FFmpeg/WebCodecs export pipeline and MP4 output where supported.
-2. Add speech recognition and word-level subtitle editing.
-3. Add scene detection and automatic edit suggestions.
-4. Add secure server-side processing only if larger AI models or cloud rendering are needed.
+```bash
+cd backend
+npm install
+npm start
+```
 
-Never put private API keys in frontend files or a public GitHub repository.
+Health check: `http://localhost:3001/api/health`
+
+Then open the website and enter `http://localhost:3001` in the FFmpeg server box. For local development, the backend CORS defaults allow the GitHub Pages site and VS Code Live Server on port 5500.
+
+### Deploy the backend
+
+The root `render.yaml` is a starting point for deploying the Docker backend to Render. Review the service and upload limits before making it public. After deployment, copy the backend service URL into the FFmpeg server box in the website.
+
+GitHub Pages hosts only the frontend. It cannot run Node.js or FFmpeg. The backend must be deployed separately.
+
+## AI feature status
+
+The interface lists the planned AI modules: Hindi/English auto captions, scene detection, voice enhancement and background removal. These are **not active yet**. Each needs a selected AI model/provider, server-side credentials, integration, and testing. Do not place API keys in frontend JavaScript or commit them to GitHub.
+
+## Important limitations
+
+- This is an evolving MVP, not a finished one-click autonomous AI editor.
+- Current Quick Polish applies a preset; it does not understand the story or automatically choose the best scenes.
+- Browser export is WebM. MP4 export uses the optional FFmpeg backend.
+- The backend processes uploads temporarily on its host and deletes temporary files after processing. Use only media you have permission to upload.
+- Free hosting can sleep, impose request limits, or have limited temporary disk/CPU. Large and long videos may fail; start with a short test clip.
+- The backend currently processes one render request synchronously. It is not a multi-user production render queue.
+
+## Security and privacy
+
+Keep provider keys in backend environment variables only. Before accepting public uploads, add authentication, per-user quotas, rate limiting, stronger file validation, abuse monitoring and an explicit privacy/retention policy.
