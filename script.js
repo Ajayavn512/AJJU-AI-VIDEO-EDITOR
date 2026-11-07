@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id), video=$('sourceVideo'), canvas=$('renderCanvas'), ctx=canvas.getContext('2d');
-let videoUrl=null,audioUrl=null,audioEl=null,filter='none',recording=false,toastTimer=null;
+let videoUrl=null,audioUrl=null,audioEl=null,filter='none',recording=false,toastTimer=null,audioContext=null,videoSource=null,musicSource=null,mixDestination=null;
 const state={start:0,end:0,duration:0};
 const fmt=t=>{if(!Number.isFinite(t))return'00:00';const s=Math.max(0,Math.floor(t));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3800)}
@@ -31,7 +31,7 @@ document.querySelectorAll('.filter-option').forEach(btn=>btn.addEventListener('c
 function updateCaption(){const t=$('captionInput').value.trim(),el=$('previewCaption');el.textContent=t;el.style.display=t?'block':'none';el.className='preview-caption pos-'+$('captionPosition').value+' size-'+$('captionSize').value}
 ['captionInput','captionPosition','captionSize'].forEach(id=>$(id).addEventListener('input',updateCaption));
 $('autoEditBtn').addEventListener('click',()=>{if(!video.src||!state.duration){toast('First import a video and wait until it finishes loading.');return}filter='cinematic';document.querySelectorAll('.filter-option').forEach(b=>b.classList.toggle('selected',b.dataset.filter==='cinematic'));video.style.filter=filterCss();$('aspectSelect').value='original';$('trimStart').value=0;$('trimEnd').value=100;updateTrim();$('captionPosition').value='bottom';$('captionSize').value='medium';toast('Quick polish applied: cinematic look, original framing and full clip. Add your own title if needed.')});
-$('audioInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(f);audioEl=new Audio(audioUrl);audioEl.preload='auto';$('audioLabel').textContent=f.name;$('removeAudio').classList.remove('hidden');toast('Music selected. It will be mixed into the exported video.')});
+$('audioInput').addEventListener('change',e=>{const f=e.target.files[0];if(!f)return;if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=URL.createObjectURL(f);audioEl=new Audio(audioUrl);audioEl.preload='auto';musicSource=null;$('audioLabel').textContent=f.name;$('removeAudio').classList.remove('hidden');toast('Music selected. It will be mixed into the exported video.')});
 $('removeAudio').onclick=()=>{if(audioEl){audioEl.pause();audioEl=null}if(audioUrl)URL.revokeObjectURL(audioUrl);audioUrl=null;$('audioInput').value='';$('audioLabel').textContent='Add an audio file from your device';$('removeAudio').classList.add('hidden')};
 function dimensions(){const w=video.videoWidth,h=video.videoHeight,ratio=$('aspectSelect').value;let r=ratio==='original'?w/h:ratio==='16:9'?16/9:ratio==='9:16'?9/16:1;let max=$('qualitySelect').value==='high'?1920:1280;let cw,ch;if(r>=1){cw=Math.min(max,w||max);ch=Math.round(cw/r)}else{ch=Math.min(max,h||max);cw=Math.round(ch*r)}return{w:cw,h:ch}}
 function wrapText(text,maxWidth){const words=text.split(/\s+/),lines=[];let line='';for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>maxWidth&&line){lines.push(line);line=word}else line=test}if(line)lines.push(line);return lines.slice(0,3)}
@@ -47,7 +47,7 @@ async function exportVideo(){
   audioContext=new (window.AudioContext||window.webkitAudioContext)();await audioContext.resume();
   const videoSource=audioContext.createMediaElementSource(video);videoSource.connect(audioContext.destination);const mix=audioContext.createMediaStreamDestination();videoSource.connect(mix);
   if(audioEl){const musicSource=audioContext.createMediaElementSource(audioEl);musicSource.connect(audioContext.destination);musicSource.connect(mix);audioEl.currentTime=0}
-  mix.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
+  mixDestination.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
   let mime='video/webm;codecs=vp9,opus';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm;codecs=vp8,opus';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm';
   recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:$('qualitySelect').value==='high'?6000000:3000000});
   recorder.ondataavailable=e=>{if(e.data&&e.data.size)chunks.push(e.data)};
@@ -57,7 +57,7 @@ async function exportVideo(){
   if(recorder.state!=='inactive')recorder.stop();if(audioEl)audioEl.pause();await done;const blob=new Blob(chunks,{type:mime});if(!blob.size)throw new Error('Export file was empty. Please retry.');
   const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ajju-edited-video.webm';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);$('progressPercent').textContent='100%';$('progressBar').style.width='100%';$('progressLabel').textContent='Export complete!';toast('Edited video downloaded as WebM.')
  }catch(err){recording=false;toast(err.message||'Export failed. Try a shorter MP4 video.')}
- finally{cancelAnimationFrame(raf);if(recorder&&recorder.state!=='inactive')try{recorder.stop()}catch(e){}if(stream)stream.getTracks().forEach(t=>t.stop());if(audioEl)audioEl.pause();video.pause();if(Number.isFinite(oldTime)&&state.duration)try{await seekTo(Math.min(oldTime,state.duration))}catch(e){}if(audioContext)try{await audioContext.close()}catch(e){}$('exportBtn').disabled=!video.src;setTimeout(()=>$('progressWrap').classList.add('hidden'),5000)}
+ finally{cancelAnimationFrame(raf);if(recorder&&recorder.state!=='inactive')try{recorder.stop()}catch(e){}if(stream)stream.getTracks().forEach(t=>t.stop());if(audioEl)audioEl.pause();video.pause();if(Number.isFinite(oldTime)&&state.duration)try{await seekTo(Math.min(oldTime,state.duration))}catch(e){}if(mixDestination)try{mixDestination.disconnect()}catch(e){}$('exportBtn').disabled=!video.src;setTimeout(()=>$('progressWrap').classList.add('hidden'),5000)}
 }
 $('exportBtn').addEventListener('click',exportVideo);
 $('helpBtn').onclick=()=>$('helpModal').classList.remove('hidden');$('closeHelp').onclick=()=>$('helpModal').classList.add('hidden');$('gotIt').onclick=()=>$('helpModal').classList.add('hidden');$('helpModal').addEventListener('click',e=>{if(e.target===$('helpModal'))$('helpModal').classList.add('hidden')});
