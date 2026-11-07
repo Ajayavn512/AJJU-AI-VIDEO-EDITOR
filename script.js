@@ -8,6 +8,7 @@ const empty=$('previewStage').querySelector('.empty-preview');empty.id='emptyPre
 function setLoaded(on){$('dropzone').classList.toggle('hidden',on);$('fileInfo').classList.toggle('hidden',!on);$('emptyPreview').classList.toggle('hidden',on);$('previewControls').classList.toggle('hidden',!on);$('exportBtn').disabled=!on;$('mp4ExportBtn').disabled=!on||!apiBase;$('analyzeBtn').disabled=!on||!apiBase;$('captionsBtn').disabled=!on||!apiBase;$('voiceBtn').disabled=!on||!apiBase;$('bgBtn').disabled=!on||!apiBase;$('projectStatus').classList.toggle('hidden',on);$('projectLoaded').classList.toggle('hidden',!on)}
 function loadVideo(file){
  if(!file||!file.type.startsWith('video/')){toast('Choose a valid video file.');return}
+ sourceFile=file;
  if(videoUrl)URL.revokeObjectURL(videoUrl);
  videoUrl=URL.createObjectURL(file);video.pause();video.removeAttribute('src');video.load();video.src=videoUrl;video.preload='auto';
  $('fileName').textContent=file.name;$('fileMeta').textContent=(file.size/1048576).toFixed(1)+' MB · Loading video';$('projectName').textContent=file.name;setLoaded(true);
@@ -120,6 +121,7 @@ $('bgBtn').addEventListener('click',()=>runAiAction($('bgBtn'),'/api/background-
 $('connectApiBtn').addEventListener('click',connectApi);
 $('mp4ExportBtn').addEventListener('click',exportMp4);$('analyzeBtn').addEventListener('click',analyzeVideo);
 try{const saved=localStorage.getItem('ajjuApiBase');$('apiUrlInput').value=saved||apiBase}catch(e){}
+connectApi();
 
 $('exportBtn').addEventListener('click',exportVideo);
 $('helpBtn').onclick=()=>$('helpModal').classList.remove('hidden');$('closeHelp').onclick=()=>$('helpModal').classList.add('hidden');$('gotIt').onclick=()=>$('helpModal').classList.add('hidden');$('helpModal').addEventListener('click',e=>{if(e.target===$('helpModal'))$('helpModal').classList.add('hidden')});
