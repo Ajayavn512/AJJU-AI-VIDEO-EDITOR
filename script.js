@@ -44,9 +44,11 @@ async function exportVideo(){
  const oldTime=video.currentTime;let stream=null,recorder=null,chunks=[],audioContext=null,raf=0;
  try{
   const {w,h}=dimensions();canvas.width=w;canvas.height=h;video.pause();await seekTo(state.start);drawFrame();stream=canvas.captureStream(30);
-  audioContext=new (window.AudioContext||window.webkitAudioContext)();await audioContext.resume();
-  const videoSource=audioContext.createMediaElementSource(video);videoSource.connect(audioContext.destination);const mix=audioContext.createMediaStreamDestination();videoSource.connect(mix);
-  if(audioEl){const musicSource=audioContext.createMediaElementSource(audioEl);musicSource.connect(audioContext.destination);musicSource.connect(mix);audioEl.currentTime=0}
+  if(!audioContext)audioContext=new (window.AudioContext||window.webkitAudioContext)();await audioContext.resume();
+  if(!videoSource){videoSource=audioContext.createMediaElementSource(video);videoSource.connect(audioContext.destination)}
+  if(mixDestination)try{mixDestination.disconnect()}catch(e){}
+  mixDestination=audioContext.createMediaStreamDestination();videoSource.connect(mixDestination);
+  if(audioEl){if(!musicSource)musicSource=audioContext.createMediaElementSource(audioEl);musicSource.connect(mixDestination);audioEl.currentTime=0}
   mixDestination.stream.getAudioTracks().forEach(t=>stream.addTrack(t));
   let mime='video/webm;codecs=vp9,opus';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm;codecs=vp8,opus';if(!MediaRecorder.isTypeSupported(mime))mime='video/webm';
   recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:$('qualitySelect').value==='high'?6000000:3000000});
