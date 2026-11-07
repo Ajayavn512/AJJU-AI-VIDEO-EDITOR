@@ -1,6 +1,6 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id), video=$('sourceVideo'), canvas=$('renderCanvas'), ctx=canvas.getContext('2d');
-let videoUrl=null,sourceFile=null,audioUrl=null,audioEl=null,filter='none',recording=false,toastTimer=null,audioContext=null,videoSource=null,musicSource=null,mixDestination=null,apiBase='';
+let videoUrl=null,sourceFile=null,audioUrl=null,audioEl=null,filter='none',recording=false,toastTimer=null,audioContext=null,videoSource=null,musicSource=null,mixDestination=null,apiBase='https://ajju-ai-video-editor-api-ma2x.onrender.com';
 const state={start:0,end:0,duration:0};
 const fmt=t=>{if(!Number.isFinite(t))return'00:00';const s=Math.max(0,Math.floor(t));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3800)}
@@ -119,7 +119,7 @@ $('voiceBtn').addEventListener('click',()=>runAiAction($('voiceBtn'),'/api/voice
 $('bgBtn').addEventListener('click',()=>runAiAction($('bgBtn'),'/api/background-remove','ajju-background-removed.mp4'));
 $('connectApiBtn').addEventListener('click',connectApi);
 $('mp4ExportBtn').addEventListener('click',exportMp4);$('analyzeBtn').addEventListener('click',analyzeVideo);
-try{const saved=localStorage.getItem('ajjuApiBase');if(saved)$('apiUrlInput').value=saved}catch(e){}
+try{const saved=localStorage.getItem('ajjuApiBase');$('apiUrlInput').value=saved||apiBase}catch(e){}
 
 $('exportBtn').addEventListener('click',exportVideo);
 $('helpBtn').onclick=()=>$('helpModal').classList.remove('hidden');$('closeHelp').onclick=()=>$('helpModal').classList.add('hidden');$('gotIt').onclick=()=>$('helpModal').classList.add('hidden');$('helpModal').addEventListener('click',e=>{if(e.target===$('helpModal'))$('helpModal').classList.add('hidden')});
