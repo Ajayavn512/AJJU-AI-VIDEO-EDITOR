@@ -5,7 +5,7 @@ const state={start:0,end:0,duration:0};
 const fmt=t=>{if(!Number.isFinite(t))return'00:00';const s=Math.max(0,Math.floor(t));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3800)}
 const empty=$('previewStage').querySelector('.empty-preview');empty.id='emptyPreview';
-function setLoaded(on){$('dropzone').classList.toggle('hidden',on);$('fileInfo').classList.toggle('hidden',!on);$('emptyPreview').classList.toggle('hidden',on);$('previewControls').classList.toggle('hidden',!on);$('exportBtn').disabled=!on;$('mp4ExportBtn').disabled=!on||!apiBase;$('projectStatus').classList.toggle('hidden',on);$('projectLoaded').classList.toggle('hidden',!on)}
+function setLoaded(on){$('dropzone').classList.toggle('hidden',on);$('fileInfo').classList.toggle('hidden',!on);$('emptyPreview').classList.toggle('hidden',on);$('previewControls').classList.toggle('hidden',!on);$('exportBtn').disabled=!on;$('mp4ExportBtn').disabled=!on||!apiBase;$('analyzeBtn').disabled=!on||!apiBase;$('projectStatus').classList.toggle('hidden',on);$('projectLoaded').classList.toggle('hidden',!on)}
 function loadVideo(file){
  if(!file||!file.type.startsWith('video/')){toast('Choose a valid video file.');return}
  if(videoUrl)URL.revokeObjectURL(videoUrl);
@@ -66,7 +66,7 @@ async function connectApi(){
  let raw=$('apiUrlInput').value.trim();while(raw.endsWith('/'))raw=raw.slice(0,-1);
  if(!raw){toast('Enter your deployed FFmpeg API URL first.');return}
  const status=$('apiStatus');status.textContent='Checking...';status.className='api-status';
- try{const response=await fetch(raw+'/api/health');if(!response.ok)throw new Error('Health check failed');const data=await response.json();if(!data.ok)throw new Error('API did not respond as ready');apiBase=raw;status.textContent='Connected · FFmpeg';status.className='api-status online';$('mp4ExportBtn').disabled=!sourceFile;try{localStorage.setItem('ajjuApiBase',raw)}catch(e){}toast('FFmpeg API connected. MP4 export is ready.')}
+ try{const response=await fetch(raw+'/api/health');if(!response.ok)throw new Error('Health check failed');const data=await response.json();if(!data.ok)throw new Error('API did not respond as ready');apiBase=raw;status.textContent='Connected · FFmpeg';status.className='api-status online';$('mp4ExportBtn').disabled=!sourceFile;try{localStorage.setItem('ajjuApiBase',raw)}catch(e){}$('analyzeBtn').disabled=!sourceFile;toast('FFmpeg API connected. MP4 export and video analysis are ready.')}
  catch(error){apiBase='';status.textContent='Connection failed';status.className='api-status error';$('mp4ExportBtn').disabled=true;toast('Could not connect. Check the API URL, deployment and allowed frontend origin.')}
 }
 async function exportMp4(){
@@ -81,8 +81,23 @@ async function exportMp4(){
  }catch(error){toast(error.message||'MP4 export failed.')}
  finally{btn.disabled=!sourceFile||!apiBase;btn.innerHTML='Export MP4 with FFmpeg <b>→</b>'}
 }
+
+async function analyzeVideo(){
+ if(!sourceFile||!apiBase){toast('Import a video and connect FFmpeg first.');return}
+ const btn=$('analyzeBtn'),status=$('analysisStatus'),results=$('analysisResults');btn.disabled=true;btn.textContent='Analyzing video...';status.textContent='Finding scene changes and long silent sections. This can take a little while.';results.classList.add('hidden');
+ try{
+  const form=new FormData();form.append('video',sourceFile);
+  const response=await fetch(apiBase+'/api/analyze',{method:'POST',body:form});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||'Analysis failed.');
+  results.innerHTML='<div class="analysis-line"><strong>Video duration</strong><span>'+fmt(data.duration)+'</span></div><div class="analysis-line"><strong>Scene changes found</strong><span>'+data.scenes.length+'</span></div><div class="analysis-line"><strong>Long silent sections</strong><span>'+data.silences.length+'</span></div><p>'+data.note+'</p>';
+  if(data.silences.length){const first=data.silences[0];if(first.start<2&&first.end<state.duration-1){results.innerHTML+='<button id="applyPauseTrim" class="api-connect-btn" type="button">Trim opening pause (about '+fmt(first.end)+' )</button>';}}
+  results.classList.remove('hidden');status.textContent='Analysis complete.';toast('Video analysis complete.');
+  const apply=$('applyPauseTrim');if(apply)apply.onclick=()=>{const first=data.silences[0];const next=Math.min(95,Math.max(0,first.end/state.duration*100));$('trimStart').value=next;updateTrim();toast('Opening pause trim suggestion applied. Review before exporting.')};
+ }catch(error){status.textContent=error.message;toast(error.message||'Video analysis failed.')}
+ finally{btn.disabled=!apiBase||!sourceFile;btn.textContent='Analyze scenes & long pauses'}
+}
 $('connectApiBtn').addEventListener('click',connectApi);
-$('mp4ExportBtn').addEventListener('click',exportMp4);
+$('mp4ExportBtn').addEventListener('click',exportMp4);$('analyzeBtn').addEventListener('click',analyzeVideo);
 try{const saved=localStorage.getItem('ajjuApiBase');if(saved)$('apiUrlInput').value=saved}catch(e){}
 
 $('exportBtn').addEventListener('click',exportVideo);
