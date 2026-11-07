@@ -15,7 +15,8 @@ const PORT = Number(process.env.PORT || 3001);
 const MAX_UPLOAD = Number(process.env.MAX_UPLOAD_MB || 500) * 1024 * 1024;
 app.disable('x-powered-by');
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'https://ajayavn512.github.io,http://localhost:5500').split(',').map(value => value.trim()).filter(Boolean);\napp.use(cors({ origin: (origin, callback) => { if (!origin || allowedOrigins.includes(origin)) return callback(null, true); callback(new Error('Origin is not allowed.')); }, methods: ['GET','POST'] }));
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'https://ajayavn512.github.io,http://localhost:5500').split(',').map(value => value.trim()).filter(Boolean);
+app.use(cors({ origin: (origin, callback) => { if (!origin || allowedOrigins.includes(origin)) return callback(null, true); callback(new Error('Origin is not allowed.')); }, methods: ['GET','POST'] }));
 app.get('/api/health', (_req, res) => res.json({ ok: true, service: 'AJJU AI VIDEO EDITOR', engine: 'FFmpeg', features: ['trim','filters','aspect-ratio','mp4-h264'], aiFeaturesEnabled: false }));
 
 const upload = multer({
