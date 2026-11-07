@@ -43,7 +43,7 @@ The interface lists the planned AI modules: Hindi/English auto captions, scene d
 - Browser export is WebM. MP4 export uses the optional FFmpeg backend.
 - The backend processes uploads temporarily on its host and deletes temporary files after processing. Use only media you have permission to upload.
 - Free hosting can sleep, impose request limits, or have limited temporary disk/CPU. Large and long videos may fail; start with a short test clip.
-- The backend currently processes one render request synchronously. It is not a multi-user production render queue.
+- The backend can analyze scene changes and long silent intervals using FFmpeg signal detection; this is not semantic AI understanding. It currently processes one render request synchronously. It is not a multi-user production render queue.
 
 ## Security and privacy
 
