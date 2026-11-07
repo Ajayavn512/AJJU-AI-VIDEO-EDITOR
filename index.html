@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090b12" />
+  <meta name="description" content="AJJU AI VIDEO EDITOR — a browser-based video editing studio." />
+  <title>AJJU AI VIDEO EDITOR — Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="#home" aria-label="AJJU Studio home"><span class="brand-mark">A<span>✦</span></span><span class="brand-copy">AJJU<span>CREATIVE STUDIO</span></span></a>
+      <div class="workspace-label">WORKSPACE</div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <a class="nav-link active" href="#home"><span>◫</span> Editor <kbd>⌘1</kbd></a>
+        <a class="nav-link" href="#projects"><span>▤</span> My projects</a>
+        <a class="nav-link" href="#tools"><span>✧</span> AI tools <em>soon</em></a>
+      </nav>
+      <div class="sidebar-bottom"><div class="upgrade-card"><div class="sparkle">✦</div><strong>Your creative space</strong><p>Quick edits, clean exports, all in your browser.</p><span class="free-pill">FREE WORKSPACE</span></div><div class="profile"><div class="avatar">A</div><div><strong>Ajju Studio</strong><small>Personal workspace</small></div><span class="profile-dots">•••</span></div></div>
+    </aside>
+
+    <main class="main-content" id="home">
+      <header class="topbar"><button class="mobile-menu" id="menuBtn" aria-label="Open menu">☰</button><div class="breadcrumb">Workspace <span>/</span> <strong>Video editor</strong></div><div class="top-actions"><span class="saved-indicator"><i></i> Saved locally</span><button class="help-btn" id="helpBtn">? <span>Help</span></button><div class="top-avatar">A</div></div></header>
+      <section class="page-heading"><div><div class="eyebrow"><span class="eyebrow-dot"></span> CREATIVE WORKSPACE</div><h1>Make something <span>amazing.</span></h1><p>Drop in your footage. Shape the story. Make it yours.</p></div><div class="heading-badge"><span>✦</span> Browser-based editor <b>•</b> Free</div></section>
+
+      <section class="editor-grid">
+        <div class="left-column">
+          <section class="panel upload-panel" id="uploadPanel">
+            <div class="panel-heading"><div><span class="step-number">01</span><div><h2>Import your video</h2><p>Start with a video from your device</p></div></div><span class="format-label">MP4 · MOV · WEBM</span></div>
+            <label class="dropzone" id="dropzone" for="videoInput"><input id="videoInput" type="file" accept="video/*" hidden /><span class="upload-icon">↑</span><strong>Drag & drop your video here</strong><span>or <u>browse files</u> from your device</span><small>For best performance, start with a short video under 500 MB.</small></label>
+            <div class="file-info hidden" id="fileInfo"><div class="file-icon">▶</div><div class="file-details"><strong id="fileName">video.mp4</strong><span id="fileMeta">Ready to edit</span></div><button class="text-button" id="removeVideo">Remove</button></div>
+          </section>
+
+          <section class="panel preview-panel">
+            <div class="panel-heading"><div><span class="step-number">02</span><div><h2>Preview & edit</h2><p>See your changes as you make them</p></div></div><span class="live-tag"><i></i> LIVE PREVIEW</span></div>
+            <div class="preview-stage" id="previewStage"><div class="empty-preview"><div class="play-orb">▶</div><strong>Your preview will appear here</strong><span>Upload a video to begin editing</span></div><video id="sourceVideo" playsinline></video><canvas id="renderCanvas"></canvas><div class="preview-caption" id="previewCaption"></div><div class="preview-controls" id="previewControls"><button id="playBtn" aria-label="Play">▶</button><span id="currentTime">00:00</span><span class="time-divider">/</span><span id="duration">00:00</span><div class="preview-spacer"></div><span class="preview-quality">PREVIEW</span></div></div>
+            <div class="timeline-wrap"><div class="timeline-label"><span>TRIM YOUR CLIP</span><span id="trimReadout">00:00 — 00:00</span></div><div class="range-wrap"><input id="trimStart" type="range" min="0" max="100" value="0" step="0.1" aria-label="Trim start"><input id="trimEnd" type="range" min="0" max="100" value="100" step="0.1" aria-label="Trim end"><div class="range-track"><div class="range-selected" id="rangeSelected"></div></div></div><div class="range-ends"><span>START</span><span>END</span></div></div>
+          </section>
+
+          <section class="panel tools-panel" id="tools">
+            <div class="panel-heading"><div><span class="step-number">03</span><div><h2>Give it your style</h2><p>Fine-tune the look and feel</p></div></div></div>
+            <div class="tool-section"><div class="tool-title"><span>✧</span> Visual style</div><div class="filter-grid"><button class="filter-option selected" data-filter="none"><span class="filter-swatch original"></span><b>Original</b></button><button class="filter-option" data-filter="cinematic"><span class="filter-swatch cinematic"></span><b>Cinematic</b></button><button class="filter-option" data-filter="warm"><span class="filter-swatch warm"></span><b>Warm</b></button><button class="filter-option" data-filter="mono"><span class="filter-swatch mono"></span><b>Mono</b></button><button class="filter-option" data-filter="vivid"><span class="filter-swatch vivid"></span><b>Vivid</b></button></div></div>
+            <div class="tool-divider"></div>
+            <div class="tool-section"><div class="tool-title"><span>▤</span> Add a title or caption</div><input class="text-input" id="captionInput" type="text" maxlength="100" placeholder="Type your title or caption..." /><div class="inline-controls"><label>Position<select id="captionPosition"><option value="bottom">Bottom</option><option value="center">Center</option><option value="top">Top</option></select></label><label>Text size<select id="captionSize"><option value="small">Small</option><option value="medium" selected>Medium</option><option value="large">Large</option></select></label></div></div>
+            <div class="tool-divider"></div>
+            <div class="tool-section"><div class="tool-title"><span>♫</span> Background music <span class="optional-label">OPTIONAL</span></div><label class="audio-upload" for="audioInput"><input id="audioInput" type="file" accept="audio/*" hidden /><span>＋</span><span id="audioLabel">Add an audio file from your device</span></label><button class="text-button hidden" id="removeAudio">Remove audio</button></div>
+          </section>
+        </div>
+
+        <aside class="right-column">
+          <section class="panel export-panel"><div class="export-heading"><span class="step-number">04</span><div><h2>Export video</h2><p>Ready when you are</p></div></div><div class="export-preview"><div class="export-preview-icon">✦</div><div><strong>Your final cut</strong><span>Preview your edits before export</span></div></div><div class="setting-group"><label for="aspectSelect">Aspect ratio</label><select id="aspectSelect"><option value="original">Original video</option><option value="16:9">16:9 · YouTube</option><option value="9:16">9:16 · Reels / Shorts</option><option value="1:1">1:1 · Square</option></select></div><div class="setting-group"><label for="qualitySelect">Export quality</label><select id="qualitySelect"><option value="high">High · 1080p (if supported)</option><option value="standard" selected>Standard · 720p</option></select></div><div class="export-note"><span>ⓘ</span><p>Export happens on your device. Keep this tab open while it processes.</p></div><button class="export-button" id="exportBtn" disabled><span>✦</span> Export my video <b>→</b></button><div class="export-progress hidden" id="progressWrap"><div class="progress-copy"><span id="progressLabel">Preparing your video...</span><b id="progressPercent">0%</b></div><div class="progress-track"><i id="progressBar"></i></div></div><p class="privacy-note">⌑ Your video stays on your device</p></section>
+          <section class="panel tips-panel"><div class="tips-icon">✧</div><div><strong>A little creative tip</strong><p>Short, clear clips with good lighting often make the strongest videos. Try a cinematic look to give your footage a film-inspired finish.</p></div></section>
+          <section class="panel project-panel" id="projects"><div class="project-head"><div><h3>Recent project</h3><p>Your current session</p></div><span class="project-dot"></span></div><div class="project-empty" id="projectStatus">No video imported yet</div><div class="project-loaded hidden" id="projectLoaded"><span class="mini-video">▶</span><span id="projectName">Untitled video</span><small>In this session</small></div></section>
+        </aside>
+      </section>
+      <footer class="footer"><span>© 2026 AJJU CREATIVE STUDIO</span><span>Made for creators, with care <b>✦</b></span></footer>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <div class="modal-backdrop hidden" id="helpModal"><div class="help-modal"><button class="modal-close" id="closeHelp">×</button><span class="modal-sparkle">✦</span><h2>Welcome to AJJU Studio</h2><p>This first version lets you trim clips, apply visual looks, add a title and mix in your own audio, then export a WebM video directly in your browser.</p><p><b>Note:</b> Automatic AI scene editing, speech recognition captions and MP4 export need additional processing tools or services. They are not active in this browser-only starter version.</p><button class="export-button" id="gotIt">Got it</button></div></div>
+  <script src="script.js"></script>
+</body>
+</html>
