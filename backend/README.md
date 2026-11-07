@@ -23,6 +23,8 @@ This Node.js + Express service uses FFmpeg to trim, apply a basic color look, cr
 
 The response is an MP4 download. Temporary uploads and render files are deleted after the response.
 
+`POST /api/analyze` accepts one `video` upload and returns FFmpeg scene-change timestamps and long-silence intervals. This is signal-based analysis, not semantic AI editing.
+
 ## Deployment
 
 Deploy this folder as a Docker web service on a host that supports Docker. Set `ALLOWED_ORIGINS` to the exact frontend origin. Configure a request/upload limit and persistent monitoring before public use.
