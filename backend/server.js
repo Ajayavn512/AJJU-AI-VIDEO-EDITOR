@@ -44,6 +44,37 @@ function videoFilter(aspect, look, width) {
   const base = `scale='min(${targetW}/iw,${targetH}/ih)*iw':'min(${targetW}/iw,${targetH}/ih)*ih',crop=${targetW}:${targetH}`;
   return filters[look] === 'null' ? base : base + ',' + filters[look];
 }
+
+function runFfmpeg(args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(ffmpegPath, args, { stdio: ['ignore','ignore','pipe'] });
+    let stderr = '';
+    child.stderr.on('data', chunk => { stderr += chunk.toString(); if (stderr.length > 200000) stderr = stderr.slice(-200000); });
+    child.on('error', reject);
+    child.on('close', code => code === 0 ? resolve(stderr) : reject(new Error(stderr || 'FFmpeg analysis failed.')));
+  });
+}
+app.post('/api/analyze', upload.single('video'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Video file is required.' });
+  const input = req.file.path;
+  try {
+    const info = await runFfmpeg(['-hide_banner','-i',input]);
+    const durationMatch = info.match(/Duration: (\\d{2}):(\\d{2}):(\\d{2}(?:\\.\\d+)?)/);
+    const duration = durationMatch ? Number(durationMatch[1])*3600 + Number(durationMatch[2])*60 + Number(durationMatch[3]) : null;
+    if (!duration || duration > 3600) return res.status(400).json({ error: 'Could not read duration or video is over 60 minutes.' });
+    const [sceneLog, silenceLog] = await Promise.all([
+      runFfmpeg(['-hide_banner','-i',input,'-vf',"select='gt(scene,0.35)',showinfo",'-an','-f','null','-']),
+      runFfmpeg(['-hide_banner','-i',input,'-af','silencedetect=noise=-35dB:d=0.8','-vn','-f','null','-'])
+    ]);
+    const scenes = [...sceneLog.matchAll(/pts_time:([0-9.]+)/g)].map(m=>Number(m[1])).filter(n=>Number.isFinite(n)&&n>0&&n<duration).slice(0,200);
+    const starts = [...silenceLog.matchAll(/silence_start: ([0-9.]+)/g)].map(m=>Number(m[1]));
+    const ends = [...silenceLog.matchAll(/silence_end: ([0-9.]+)/g)].map(m=>Number(m[1]));
+    const silences = starts.map((start,i)=>({start,end:ends[i]??duration})).filter(x=>x.end-x.start>=0.8).slice(0,200);
+    res.json({ok:true,duration,scenes,silences,method:'FFmpeg scene-change and silence analysis',note:'These are algorithmic suggestions, not semantic AI understanding.'});
+  } catch (error) {
+    res.status(500).json({error:'Could not analyze this video. Try a shorter MP4 (H.264) clip.'});
+  } finally { fs.unlink(input,()=>{}); }
+});
 app.post('/api/render', upload.single('video'), async (req, res) => {
   const file = req.file;
   if (!file) return res.status(400).json({ error: 'Video file is required.' });
