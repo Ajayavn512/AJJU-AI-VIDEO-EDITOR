@@ -1,11 +1,11 @@
 (()=>{'use strict';
 const $=id=>document.getElementById(id), video=$('sourceVideo'), canvas=$('renderCanvas'), ctx=canvas.getContext('2d');
-let videoUrl=null,audioUrl=null,audioEl=null,filter='none',recording=false,toastTimer=null,audioContext=null,videoSource=null,musicSource=null,mixDestination=null;
+let videoUrl=null,sourceFile=null,audioUrl=null,audioEl=null,filter='none',recording=false,toastTimer=null,audioContext=null,videoSource=null,musicSource=null,mixDestination=null,apiBase='';
 const state={start:0,end:0,duration:0};
 const fmt=t=>{if(!Number.isFinite(t))return'00:00';const s=Math.max(0,Math.floor(t));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3800)}
 const empty=$('previewStage').querySelector('.empty-preview');empty.id='emptyPreview';
-function setLoaded(on){$('dropzone').classList.toggle('hidden',on);$('fileInfo').classList.toggle('hidden',!on);$('emptyPreview').classList.toggle('hidden',on);$('previewControls').classList.toggle('hidden',!on);$('exportBtn').disabled=!on;$('projectStatus').classList.toggle('hidden',on);$('projectLoaded').classList.toggle('hidden',!on)}
+function setLoaded(on){$('dropzone').classList.toggle('hidden',on);$('fileInfo').classList.toggle('hidden',!on);$('emptyPreview').classList.toggle('hidden',on);$('previewControls').classList.toggle('hidden',!on);$('exportBtn').disabled=!on;$('mp4ExportBtn').disabled=!on||!apiBase;$('projectStatus').classList.toggle('hidden',on);$('projectLoaded').classList.toggle('hidden',!on)}
 function loadVideo(file){
  if(!file||!file.type.startsWith('video/')){toast('Choose a valid video file.');return}
  if(videoUrl)URL.revokeObjectURL(videoUrl);
@@ -61,7 +61,30 @@ async function exportVideo(){
  }catch(err){recording=false;toast(err.message||'Export failed. Try a shorter MP4 video.')}
  finally{cancelAnimationFrame(raf);if(recorder&&recorder.state!=='inactive')try{recorder.stop()}catch(e){}if(stream)stream.getTracks().forEach(t=>t.stop());if(audioEl)audioEl.pause();video.pause();if(Number.isFinite(oldTime)&&state.duration)try{await seekTo(Math.min(oldTime,state.duration))}catch(e){}if(mixDestination)try{mixDestination.disconnect()}catch(e){}$('exportBtn').disabled=!video.src;setTimeout(()=>$('progressWrap').classList.add('hidden'),5000)}
 }
-$('exportBtn').addEventListener('click',exportVideo);
+
+async function connectApi(){
+ const raw=$('apiUrlInput').value.trim().replace(/\\/$/,'');
+ if(!raw){toast('Enter your deployed FFmpeg API URL first.');return}
+ const status=$('apiStatus');status.textContent='Checking...';status.className='api-status';
+ try{const response=await fetch(raw+'/api/health');if(!response.ok)throw new Error('Health check failed');const data=await response.json();if(!data.ok)throw new Error('API did not respond as ready');apiBase=raw;status.textContent='Connected · FFmpeg';status.className='api-status online';$('mp4ExportBtn').disabled=!sourceFile;try{localStorage.setItem('ajjuApiBase',raw)}catch(e){}toast('FFmpeg API connected. MP4 export is ready.')}
+ catch(error){apiBase='';status.textContent='Connection failed';status.className='api-status error';$('mp4ExportBtn').disabled=true;toast('Could not connect. Check the API URL, deployment and allowed frontend origin.')}
+}
+async function exportMp4(){
+ if(!sourceFile||!apiBase){toast('Import a video and connect the FFmpeg API first.');return}
+ const btn=$('mp4ExportBtn');btn.disabled=true;btn.textContent='Processing MP4...';
+ try{
+  const form=new FormData();form.append('video',sourceFile);form.append('start',String(state.start));form.append('end',String(state.end));form.append('filter',filter);form.append('aspect',$('aspectSelect').value);form.append('quality',$('qualitySelect').value);
+  const response=await fetch(apiBase+'/api/render',{method:'POST',body:form});
+  if(!response.ok){let message='FFmpeg processing failed.';try{message=(await response.json()).error||message}catch(e){}throw new Error(message)}
+  const blob=await response.blob();if(!blob.size)throw new Error('The server returned an empty video.');
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='ajju-edited.mp4';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);toast('MP4 export complete!')
+ }catch(error){toast(error.message||'MP4 export failed.')}
+ finally{btn.disabled=!sourceFile||!apiBase;btn.innerHTML='Export MP4 with FFmpeg <b>→</b>'}
+}
+$('connectApiBtn').addEventListener('click',connectApi);
+$('mp4ExportBtn').addEventListener('click',exportMp4);
+try{const saved=localStorage.getItem('ajjuApiBase');if(saved)$('apiUrlInput').value=saved}catch(e){}
+\n$('exportBtn').addEventListener('click',exportVideo);
 $('helpBtn').onclick=()=>$('helpModal').classList.remove('hidden');$('closeHelp').onclick=()=>$('helpModal').classList.add('hidden');$('gotIt').onclick=()=>$('helpModal').classList.add('hidden');$('helpModal').addEventListener('click',e=>{if(e.target===$('helpModal'))$('helpModal').classList.add('hidden')});
 $('menuBtn').onclick=()=>$('sidebar').classList.toggle('open');document.querySelectorAll('.nav-link').forEach(a=>a.addEventListener('click',()=>{$('sidebar').classList.remove('open');document.querySelectorAll('.nav-link').forEach(n=>n.classList.remove('active'));a.classList.add('active')}));
 setLoaded(false);
