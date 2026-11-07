@@ -20,7 +20,7 @@ $('videoInput').addEventListener('change',e=>loadVideo(e.target.files[0]));
 const dz=$('dropzone');['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.add('dragover')}));
 ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{e.preventDefault();dz.classList.remove('dragover')}));
 dz.addEventListener('drop',e=>loadVideo(e.dataTransfer.files[0]));
-$('removeVideo').onclick=()=>{video.pause();video.removeAttribute('src');video.load();if(videoUrl)URL.revokeObjectURL(videoUrl);videoUrl=null;state.duration=0;setLoaded(false);$('videoInput').value='';$('currentTime').textContent='00:00';$('duration').textContent='00:00';toast('Video removed.')};
+$('removeVideo').onclick=()=>{video.pause();video.removeAttribute('src');video.load();if(videoUrl)URL.revokeObjectURL(videoUrl);videoUrl=null;sourceFile=null;state.duration=0;setLoaded(false);$('videoInput').value='';$('currentTime').textContent='00:00';$('duration').textContent='00:00';toast('Video removed.')};
 video.addEventListener('timeupdate',()=>{$('currentTime').textContent=fmt(video.currentTime);if(!recording&&video.currentTime>=state.end&&state.end>0)video.pause()});
 $('playBtn').onclick=()=>{if(!video.src)return;if(video.paused){if(video.currentTime<state.start||video.currentTime>=state.end)video.currentTime=state.start;video.play().catch(()=>toast('Playback could not start.'))}else video.pause()};
 video.addEventListener('play',()=>$('playBtn').textContent='Ⅱ');video.addEventListener('pause',()=>$('playBtn').textContent='▶');
