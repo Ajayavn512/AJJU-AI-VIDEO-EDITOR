@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: ajju-ai-video-editor-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MAX_UPLOAD_MB
+        value: "500"
+      - key: ALLOWED_ORIGINS
+        value: https://ajayavn512.github.io
