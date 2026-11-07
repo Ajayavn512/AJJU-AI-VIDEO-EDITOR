@@ -75,6 +75,45 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
     res.status(500).json({error:'Could not analyze this video. Try a shorter MP4 (H.264) clip.'});
   } finally { fs.unlink(input,()=>{}); }
 });
+
+app.post('/api/captions', upload.single('video'), async (req, res) => {
+  if (!req.file) return res.status(400).json({error:'Video file is required.'});
+  const input=req.file.path, audio=path.join(os.tmpdir(),'ajju-audio-'+crypto.randomUUID()+'.mp3');
+  try {
+    if (!process.env.OPENAI_API_KEY) return res.status(503).json({error:'Speech-to-text is not configured. Add OPENAI_API_KEY to the backend environment variables.'});
+    await new Promise((resolve,reject)=>{const p=spawn(ffmpegPath,['-y','-i',input,'-vn','-ac','1','-ar','16000','-b:a','64k',audio]);p.on('error',reject);p.on('close',c=>c===0?resolve():reject(new Error('Audio extraction failed')));});
+    const FormData = globalThis.FormData;
+    const body=new FormData();body.append('file',new Blob([fs.readFileSync(audio)],{type:'audio/mpeg'}),'audio.mp3');body.append('model','whisper-1');body.append('response_format','verbose_json');body.append('timestamp_granularities[]','segment');
+    const response=await fetch('https://api.openai.com/v1/audio/transcriptions',{method:'POST',headers:{Authorization:'Bearer '+process.env.OPENAI_API_KEY},body});
+    const data=await response.json();if(!response.ok)throw new Error(data.error?.message||'Transcription provider failed.');
+    res.json({ok:true,language:data.language||'unknown',segments:(data.segments||[]).map(x=>({start:x.start,end:x.end,text:x.text})),text:data.text||''});
+  } catch(e){res.status(502).json({error:'Caption generation failed. Check provider setup and video audio.'});}
+  finally{fs.unlink(input,()=>{});fs.unlink(audio,()=>{});}
+});
+app.post('/api/voice-enhance', upload.single('video'), async (req,res)=>{
+  if(!req.file)return res.status(400).json({error:'Video file is required.'});
+  const input=req.file.path,output=path.join(os.tmpdir(),'ajju-voice-'+crypto.randomUUID()+'.mp4');
+  try{
+    const args=['-y','-i',input,'-af','highpass=f=80,lowpass=f=12000,afftdn=nf=-25,acompressor=threshold=-18dB:ratio=2:attack=20:release=250,loudnorm=I=-16:TP=-1.5:LRA=11','-c:v','copy','-c:a','aac','-b:a','192k','-movflags','+faststart',output];
+    await new Promise((resolve,reject)=>{const p=spawn(ffmpegPath,args);p.on('error',reject);p.on('close',c=>c===0?resolve():reject(new Error('Audio enhancement failed')));});
+    res.download(output,'ajju-voice-enhanced.mp4',()=>fs.unlink(output,()=>{}));
+  }catch(e){res.status(500).json({error:'Voice cleanup failed. Try an MP4 H.264 video.'});}
+  finally{fs.unlink(input,()=>{});}
+});
+app.post('/api/background-remove', upload.single('video'), async (req,res)=>{
+  if(!req.file)return res.status(400).json({error:'Video file is required.'});
+  const input=req.file.path;
+  try{
+    if(!process.env.REMOVE_BG_API_URL)return res.status(503).json({error:'Background removal provider is not configured yet.'});
+    const bytes=fs.readFileSync(input);
+    const body=new FormData();body.append('video',new Blob([bytes],{type:req.file.mimetype}),req.file.originalname||'video.mp4');
+    const response=await fetch(process.env.REMOVE_BG_API_URL,{method:'POST',headers:process.env.REMOVE_BG_API_TOKEN?{Authorization:'Bearer '+process.env.REMOVE_BG_API_TOKEN}:{},body});
+    if(!response.ok)throw new Error('Background provider returned an error.');
+    res.setHeader('Content-Type',response.headers.get('content-type')||'video/mp4');res.setHeader('Content-Disposition','attachment; filename="ajju-background-removed.mp4"');
+    const out=Buffer.from(await response.arrayBuffer());res.send(out);
+  }catch(e){res.status(502).json({error:'Background removal provider unavailable or incompatible.'});}
+  finally{fs.unlink(input,()=>{});}
+});
 app.post('/api/render', upload.single('video'), async (req, res) => {
   const file = req.file;
   if (!file) return res.status(400).json({ error: 'Video file is required.' });
