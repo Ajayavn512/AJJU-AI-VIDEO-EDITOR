@@ -58,7 +58,7 @@ app.post('/api/analyze', upload.single('video'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Video file is required.' });
   const input = req.file.path;
   try {
-    const info = await runFfmpeg(['-hide_banner','-i',input]);
+    const info = await runFfmpeg(['-hide_banner','-i',input,'-map','0:v:0','-frames:v','1','-f','null','-']);
     const durationMatch = info.match(/Duration: (\\d{2}):(\\d{2}):(\\d{2}(?:\\.\\d+)?)/);
     const duration = durationMatch ? Number(durationMatch[1])*3600 + Number(durationMatch[2])*60 + Number(durationMatch[3]) : null;
     if (!duration || duration > 3600) return res.status(400).json({ error: 'Could not read duration or video is over 60 minutes.' });
