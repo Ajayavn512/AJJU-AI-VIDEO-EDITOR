@@ -38,8 +38,9 @@ function even(n) { return Math.max(2, Math.floor(n / 2) * 2); }
 function videoFilter(aspect, look, width) {
   const w = even(width);
   if (aspect === 'original') return filters[look];
-  const ratio = aspect === '9:16' ? '9/16' : aspect === '1:1' ? '1' : '16/9';
-  const base = `scale='if(gt(iw/ih,${ratio}),-2,${w})':'if(gt(iw/ih,${ratio}),${w}/(${ratio}),-2)',crop='if(gt(iw/ih,${ratio}),${w},iw)':'if(gt(iw/ih,${ratio}),ih,${w}/(${ratio}))'`;
+  const targetW = aspect === '9:16' ? even(Math.round(w * 9 / 16)) : w;
+  const targetH = aspect === '9:16' ? w : aspect === '1:1' ? w : even(Math.round(w * 9 / 16));
+  const base = `scale='min(${targetW}/iw,${targetH}/ih)*iw':'min(${targetW}/iw,${targetH}/ih)*ih',crop=${targetW}:${targetH}`;
   return filters[look] === 'null' ? base : base + ',' + filters[look];
 }
 app.post('/api/render', upload.single('video'), async (req, res) => {
