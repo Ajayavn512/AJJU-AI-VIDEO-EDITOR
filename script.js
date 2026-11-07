@@ -63,7 +63,7 @@ async function exportVideo(){
 }
 
 async function connectApi(){
- const raw=$('apiUrlInput').value.trim().replace(/\\/$/,'');
+ let raw=$('apiUrlInput').value.trim();while(raw.endsWith('/'))raw=raw.slice(0,-1);
  if(!raw){toast('Enter your deployed FFmpeg API URL first.');return}
  const status=$('apiStatus');status.textContent='Checking...';status.className='api-status';
  try{const response=await fetch(raw+'/api/health');if(!response.ok)throw new Error('Health check failed');const data=await response.json();if(!data.ok)throw new Error('API did not respond as ready');apiBase=raw;status.textContent='Connected · FFmpeg';status.className='api-status online';$('mp4ExportBtn').disabled=!sourceFile;try{localStorage.setItem('ajjuApiBase',raw)}catch(e){}toast('FFmpeg API connected. MP4 export is ready.')}
