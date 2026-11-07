@@ -5,7 +5,7 @@ const state={start:0,end:0,duration:0};
 const fmt=t=>{if(!Number.isFinite(t))return'00:00';const s=Math.max(0,Math.floor(t));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')};
 function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),3800)}
 const empty=$('previewStage').querySelector('.empty-preview');empty.id='emptyPreview';
-function setLoaded(on){$('dropzone').classList.toggle('hidden',on);$('fileInfo').classList.toggle('hidden',!on);$('emptyPreview').classList.toggle('hidden',on);$('previewControls').classList.toggle('hidden',!on);$('exportBtn').disabled=!on;$('mp4ExportBtn').disabled=!on||!apiBase;$('analyzeBtn').disabled=!on||!apiBase;$('projectStatus').classList.toggle('hidden',on);$('projectLoaded').classList.toggle('hidden',!on)}
+function setLoaded(on){$('dropzone').classList.toggle('hidden',on);$('fileInfo').classList.toggle('hidden',!on);$('emptyPreview').classList.toggle('hidden',on);$('previewControls').classList.toggle('hidden',!on);$('exportBtn').disabled=!on;$('mp4ExportBtn').disabled=!on||!apiBase;$('analyzeBtn').disabled=!on||!apiBase;$('captionsBtn').disabled=!on||!apiBase;$('voiceBtn').disabled=!on||!apiBase;$('bgBtn').disabled=!on||!apiBase;$('projectStatus').classList.toggle('hidden',on);$('projectLoaded').classList.toggle('hidden',!on)}
 function loadVideo(file){
  if(!file||!file.type.startsWith('video/')){toast('Choose a valid video file.');return}
  if(videoUrl)URL.revokeObjectURL(videoUrl);
@@ -66,7 +66,7 @@ async function connectApi(){
  let raw=$('apiUrlInput').value.trim();while(raw.endsWith('/'))raw=raw.slice(0,-1);
  if(!raw){toast('Enter your deployed FFmpeg API URL first.');return}
  const status=$('apiStatus');status.textContent='Checking...';status.className='api-status';
- try{const response=await fetch(raw+'/api/health');if(!response.ok)throw new Error('Health check failed');const data=await response.json();if(!data.ok)throw new Error('API did not respond as ready');apiBase=raw;status.textContent='Connected · FFmpeg';status.className='api-status online';$('mp4ExportBtn').disabled=!sourceFile;try{localStorage.setItem('ajjuApiBase',raw)}catch(e){}$('analyzeBtn').disabled=!sourceFile;toast('FFmpeg API connected. MP4 export and video analysis are ready.')}
+ try{const response=await fetch(raw+'/api/health');if(!response.ok)throw new Error('Health check failed');const data=await response.json();if(!data.ok)throw new Error('API did not respond as ready');apiBase=raw;status.textContent='Connected · FFmpeg';status.className='api-status online';$('mp4ExportBtn').disabled=!sourceFile;try{localStorage.setItem('ajjuApiBase',raw)}catch(e){}$('analyzeBtn').disabled=!sourceFile;$('captionsBtn').disabled=!sourceFile;$('voiceBtn').disabled=!sourceFile;$('bgBtn').disabled=!sourceFile;toast('Backend connected. Processing tools are ready.')}
  catch(error){apiBase='';status.textContent='Connection failed';status.className='api-status error';$('mp4ExportBtn').disabled=true;toast('Could not connect. Check the API URL, deployment and allowed frontend origin.')}
 }
 async function exportMp4(){
@@ -96,6 +96,27 @@ async function analyzeVideo(){
  }catch(error){status.textContent=error.message;toast(error.message||'Video analysis failed.')}
  finally{btn.disabled=!apiBase||!sourceFile;btn.textContent='Analyze scenes & long pauses'}
 }
+
+function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000)}
+function toSrtTime(seconds){const ms=Math.round(seconds*1000),h=Math.floor(ms/3600000),m=Math.floor(ms%3600000/60000),s=Math.floor(ms%60000/1000),r=ms%1000;return String(h).padStart(2,'0')+':'+String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+','+String(r).padStart(3,'0')}
+async function runAiAction(button,endpoint,filename){
+ if(!sourceFile||!apiBase){toast('Import a video and connect the backend first.');return}
+ const status=$('aiServiceStatus');button.disabled=true;const old=button.textContent;button.textContent='Working...';status.textContent='Processing your video. Keep this tab open.';
+ try{
+  const form=new FormData();form.append('video',sourceFile);const response=await fetch(apiBase+endpoint,{method:'POST',body:form});const type=response.headers.get('content-type')||'';
+  if(!response.ok){let msg='Processing failed.';try{msg=(await response.json()).error||msg}catch(e){}throw new Error(msg)}
+  if(endpoint==='/api/captions'){
+   const data=await response.json(),segments=data.segments||[];if(!segments.length)throw new Error('No timed captions returned.');
+   const srt=segments.map((x,i)=>(i+1)+'\n'+toSrtTime(x.start)+' --> '+toSrtTime(x.end)+'\n'+String(x.text||'').trim()).join('\n\n');
+   downloadBlob(new Blob([srt],{type:'application/x-subrip;charset=utf-8'}),'ajju-captions.srt');$('captionInput').value=segments[0].text||'';updateCaption();status.textContent='Captions generated ('+segments.length+' segments). SRT downloaded; use it as a subtitle track in your editor.';
+  }else{const blob=await response.blob();if(!blob.size)throw new Error('Empty output file.');downloadBlob(blob,filename);status.textContent='Finished. Your processed video download has started.'}
+  toast('Processing complete.');
+ }catch(e){status.textContent=e.message||'Processing failed.';toast(e.message||'Processing failed.')}
+ finally{button.disabled=!sourceFile||!apiBase;button.textContent=old}
+}
+$('captionsBtn').addEventListener('click',()=>runAiAction($('captionsBtn'),'/api/captions','ajju-captions.srt'));
+$('voiceBtn').addEventListener('click',()=>runAiAction($('voiceBtn'),'/api/voice-enhance','ajju-voice-enhanced.mp4'));
+$('bgBtn').addEventListener('click',()=>runAiAction($('bgBtn'),'/api/background-remove','ajju-background-removed.mp4'));
 $('connectApiBtn').addEventListener('click',connectApi);
 $('mp4ExportBtn').addEventListener('click',exportMp4);$('analyzeBtn').addEventListener('click',analyzeVideo);
 try{const saved=localStorage.getItem('ajjuApiBase');if(saved)$('apiUrlInput').value=saved}catch(e){}
