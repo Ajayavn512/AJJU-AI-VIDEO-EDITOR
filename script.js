@@ -41,7 +41,7 @@ async function exportVideo(){
  if(!video.src||recording)return;if(!canvas.captureStream||!window.MediaRecorder){toast('Video export is not supported. Try the latest Chrome or Edge.');return}
  if(!video.duration||!Number.isFinite(video.duration)){toast('Wait for the video to finish loading.');return}
  recording=true;$('exportBtn').disabled=true;$('progressWrap').classList.remove('hidden');$('progressLabel').textContent='Preparing your video...';$('progressPercent').textContent='0%';$('progressBar').style.width='0%';
- const oldTime=video.currentTime;let stream=null,recorder=null,chunks=[],audioContext=null,raf=0;
+ const oldTime=video.currentTime;let stream=null,recorder=null,chunks=[],raf=0;
  try{
   const {w,h}=dimensions();canvas.width=w;canvas.height=h;video.pause();await seekTo(state.start);drawFrame();stream=canvas.captureStream(30);
   if(!audioContext)audioContext=new (window.AudioContext||window.webkitAudioContext)();await audioContext.resume();
